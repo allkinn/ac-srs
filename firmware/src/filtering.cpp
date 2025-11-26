@@ -1,31 +1,19 @@
 #include "filtering.h"
 #include "config.h"
 
-static int aBuf[FILTER_WINDOW];
-static int aIndex = 0;
-static long aSum = 0;
-
-static int bBuf[FILTER_WINDOW];
-static int bIndex = 0;
-static long bSum = 0;
-
-int filteredA = 0;
-int filteredB = 0;
-
-void initFiltering() {
-    memset(aBuf, 0, sizeof(aBuf));
-    memset(bBuf, 0, sizeof(bBuf));
+// ----------------------------------------------
+// Low-Pass Filter (IIR 1st-order)
+// filtered = prev * (1 - α) + raw * α
+// ----------------------------------------------
+float lowPassFilter(float raw, float prevFiltered) {
+    return prevFiltered * (1.0f - FILTER_ALPHA) + raw * FILTER_ALPHA;
 }
 
-int movingAvg(int newVal, int* buf, int size, int &idx, long &sum) {
-    sum -= buf[idx];
-    buf[idx] = newVal;
-    sum += newVal;
-    idx = (idx + 1) % size;
-    return sum / size;
-}
 
-void updateLDRFilteredValues() {
-    filteredA = movingAvg(analogRead(LDR_A_PIN), aBuf, FILTER_WINDOW, aIndex, aSum);
-    filteredB = movingAvg(analogRead(LDR_B_PIN), bBuf, FILTER_WINDOW, bIndex, bSum);
+// ----------------------------------------------
+// Baseline Drift Compensation
+// baseline = baseline * (1 - α) + filtered * α
+// ----------------------------------------------
+float updateBaseline(float prevBaseline, float filteredValue) {
+    return prevBaseline * (1.0f - BASELINE_ALPHA) + filteredValue * BASELINE_ALPHA;
 }
