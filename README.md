@@ -127,7 +127,7 @@ AC-SRS/
 
 ---
 
-# 🔌 **Wiring Overview**
+#  **Wiring Overview**
 
 | Component         | Arduino                         |
 | ----------------- | ------------------------------- |
@@ -136,7 +136,7 @@ AC-SRS/
 | Laser A           | 5V & GND                        |
 | Laser B           | 5V & GND                        |
 | AHT20 Temp Sensor | SDA → A4, SCL → A5              |
-| Buzzer            | D9 (recommended via transistor) |
+| Buzzer            | D9                              |
 
 <p align="center">
   <img src="docs/wiring-diagram.png" width="600">
