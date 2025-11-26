@@ -1,8 +1,5 @@
 #pragma once
 #include <Arduino.h>
 
-extern int filteredA;
-extern int filteredB;
-
-void initFiltering();
-void updateLDRFilteredValues();
+float lowPassFilter(float raw, float prevFiltered);
+float updateBaseline(float prevBaseline, float filteredValue);
