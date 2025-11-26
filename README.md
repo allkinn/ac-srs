@@ -15,7 +15,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Microcontroller-Arduino_Nano-blue?style=for-the-badge">
   <img src="https://img.shields.io/badge/Sensors-LDR%20%7C%20Laser%20%7C%20AHT20-green?style=for-the-badge">
-  <img src="https://img.shields.io/badge/Project-Type-IoT%20%7C%20Automation-orange?style=for-the-badge">
   <img src="https://img.shields.io/badge/Status-Active_success-brightgreen?style=for-the-badge">
 </p>
 
