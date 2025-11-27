@@ -10,8 +10,8 @@ Adafruit_AHTX0 aht;
 // -----------------------------------------
 // Sensor Storage (internal state)
 // -----------------------------------------
-static LDRData ldrA = {0};
-static LDRData ldrB = {0};
+static LDRSensor ldrA = {0};
+static LDRSensor ldrB = {0};
 
 
 // -----------------------------------------
@@ -35,7 +35,7 @@ void initSensors() {
 // -----------------------------------------
 // GENERIC LDR UPDATE (fungsi inti)
 // -----------------------------------------
-static void updateLDR_Generic(int pin, LDRData &d) {
+static void updateLDR_Generic(int pin, LDRSensor &d) {
     d.raw = analogRead(pin);
 
     // Filter low-pass
@@ -48,15 +48,15 @@ static void updateLDR_Generic(int pin, LDRData &d) {
     d.delta = d.baseline - d.filtered;
 
     // Tentukan apakah sinar putus (hysteresis)
-    if (!d.beamBroken) {
+    if (!d.broken) {
         // Kondisi awal → menunggu sinar turun cukup jauh
         if (d.delta > THRESHOLD_DROP) {
-            d.beamBroken = true;
+            d.broken = true;
         }
     } else {
         // Sinar sudah putus → tunggu kembali ke baseline
         if (d.delta < THRESHOLD_RECOVERY) {
-            d.beamBroken = false;
+            d.broken = false;
         }
     }
 }
@@ -65,11 +65,11 @@ static void updateLDR_Generic(int pin, LDRData &d) {
 // -----------------------------------------
 // PUBLIC WRAPPERS
 // -----------------------------------------
-void updateLDR_A(LDRData &data) {
+void updateLDR_A(LDRSensor &data) {
     updateLDR_Generic(LDR_A_PIN, data);
 }
 
-void updateLDR_B(LDRData &data) {
+void updateLDR_B(LDRSensor &data) {
     updateLDR_Generic(LDR_B_PIN, data);
 }
 
