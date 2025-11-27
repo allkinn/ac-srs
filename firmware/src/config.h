@@ -1,50 +1,80 @@
 #pragma once
 
-#define LASER_DAY_PWM      255
-#define LASER_NIGHT_PWM    180
-#define NIGHT_THRESHOLD    50
-
 // ==========================================
 // PIN ASSIGNMENT
 // ==========================================
-#define LASER_A_PIN            5
-#define LASER_B_PIN            6
+#define LASER_A_PIN            9
+#define LASER_B_PIN            10
 
 #define LDR_A_PIN              A0
 #define LDR_B_PIN              A1
 
-#define BUZZER_PIN             9
+// OPTIONAL: LDR tambahan buat ambient light detection
+#define LDR_AMBIENT_PIN        A2
+
+#define BUZZER_PIN             3
+
+// ==========================================
+// LASER PWM CONTROL
+// ==========================================
+#define LASER_DAY_PWM          255
+#define LASER_NIGHT_PWM        180
+#define NIGHT_THRESHOLD        50
+
+// Auto night mode detection
+#define NIGHT_MODE_AUTO        false  // Set true kalau lo punya LDR ketiga
 
 // ==========================================
 // FILTERING & BASELINE ADAPTATION
 // ==========================================
-// FILTER_ALPHA: 0.0 → no filter, 1.0 → completely smooth
-// BASELINE_ALPHA: adaptasi baseline jangka panjang (laser drift)
-#define FILTER_ALPHA           0.10f      // smoothing LDR
-#define BASELINE_ALPHA         0.001f     // baseline drift tracking
+#define FILTER_ALPHA           0.10f
+#define BASELINE_ALPHA         0.001f
 
 // ==========================================
 // THRESHOLDS (with hysteresis)
 // ==========================================
-// THRESHOLD_DROP: perbedaan intensitas saat sinar terputus
-// THRESHOLD_RECOVERY: threshold balik supaya gak bouncing
-#define THRESHOLD_DROP         80         // tanda: wajib kalibrasi real
-#define THRESHOLD_RECOVERY     40         // tanda: histeresis kembali aman
+#define THRESHOLD_DROP         80
+#define THRESHOLD_RECOVERY     40
 
 // ==========================================
 // OCCUPANCY CONFIG
 // ==========================================
-// Safety cap mencegah overflow counter kalau sensor glitch
 #define MAX_PEOPLE_COUNT       50
 
 // ==========================================
 // TEMPERATURE CONFIG
 // ==========================================
-// Threshold suhu ruangan yang dianggap “dingin” (AC hidup)
 #define TEMP_COLD_THRESHOLD    23.5f
 
 // ==========================================
 // AHT20 CONFIG
 // ==========================================
-#define AHT20_I2C_ADDR         0x38  // alamat default sensor
+#define AHT20_I2C_ADDR         0x38
 
+// ==========================================
+// LOOP TIMING
+// ==========================================
+#define FRAME_DELAY_MS         20
+
+// ==========================================
+// SENSOR STRUCT
+// ==========================================
+typedef struct {
+    int raw;
+    float filtered;
+    float baseline;
+    float delta;
+    bool broken;
+} LDRSensor;
+
+// ==========================================
+// STATE MACHINE ENUMS
+// ==========================================
+enum SystemState {
+    IDLE,
+    BREAK_A,
+    BREAK_B,
+    CONFIRM_AB,
+    CONFIRM_BA,
+    RECOVERY
+};
