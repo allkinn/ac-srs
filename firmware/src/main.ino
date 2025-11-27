@@ -6,9 +6,9 @@
 #include "occupancy_logic.h"
 #include "utils.h"
 
-// Global sensor data
-LDRSensor sensorA;
-LDRSensor sensorB;
+// Global sensor data (initialized to zero)
+LDRSensor sensorA = {0};
+LDRSensor sensorB = {0};
 
 // Timing control
 unsigned long lastFrameTime = 0;
