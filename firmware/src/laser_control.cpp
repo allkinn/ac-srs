@@ -1,35 +1,50 @@
 #include "laser_control.h"
 #include "config.h"
-#include <Arduino.h>
+#include "utils.h"
 
-unsigned long laserTimer = 0;
-bool laserState = false;
+// Timing internal
+static unsigned long lastToggleTime = 0;
 
-unsigned long systemStart = 0;
+// Mode PWM
+static bool laserOn = false;
 
-int currentOnTime = LASER_ON_MS_NORMAL;
-int currentOffTime = LASER_OFF_MS_NORMAL;
+// ON/OFF timing aktif sekarang
+static unsigned long currentOnTime  = LASER_ON_MS_NORMAL;
+static unsigned long currentOffTime = LASER_OFF_MS_NORMAL;
 
-void initLaserControl() {
+void initLaserPWM() {
     pinMode(LASER_A_PIN, OUTPUT);
     pinMode(LASER_B_PIN, OUTPUT);
 
     digitalWrite(LASER_A_PIN, LOW);
     digitalWrite(LASER_B_PIN, LOW);
 
-    systemStart = millis();
+    lastToggleTime = millis();
 }
 
-bool isNightMode() {
-    unsigned long msPassed = millis() - systemStart;
-    unsigned long hours = (msPassed / 3600000UL) % 24;
 
-    if (hours >= NIGHT_START_HOUR || hours < DAY_START_HOUR)
+// -----------------------------------------------------
+// CEK DAY/NIGHT MODE (berdasarkan jam lokal)
+// -----------------------------------------------------
+bool isNightMode() {
+    int hour = getCurrentHour();
+
+    // Jam malam: >= NIGHT_START_HOUR atau < NIGHT_END_HOUR
+    if (hour >= NIGHT_START_HOUR || hour < NIGHT_END_HOUR) {
         return true;
+    } 
     return false;
 }
 
+
+// -----------------------------------------------------
+// UPDATE PWM UNTUK KEDUA LASER
+// Tanpa delay, non-blocking, aman di loop 50 Hz
+// -----------------------------------------------------
 void updateLaserPWM() {
+    unsigned long now = millis();
+
+    // Tentukan ON/OFF time berdasar mode
     if (isNightMode()) {
         currentOnTime  = LASER_ON_MS_NIGHT;
         currentOffTime = LASER_OFF_MS_NIGHT;
@@ -38,23 +53,24 @@ void updateLaserPWM() {
         currentOffTime = LASER_OFF_MS_NORMAL;
     }
 
-    unsigned long now = millis();
+    // Hitung berapa lama telah berjalan
+    unsigned long elapsed = now - lastToggleTime;
 
-    if (!laserState) {
-        if (now - laserTimer >= currentOffTime) {
-            laserState = true;
-            laserTimer = now;
-
-            digitalWrite(LASER_A_PIN, HIGH);
-            digitalWrite(LASER_B_PIN, HIGH);
-        }
-    } else {
-        if (now - laserTimer >= currentOnTime) {
-            laserState = false;
-            laserTimer = now;
-
+    if (laserOn) {
+        // Kalau sedang ON dan sudah melewati ON-time → matikan
+        if (elapsed >= currentOnTime) {
+            laserOn = false;
             digitalWrite(LASER_A_PIN, LOW);
             digitalWrite(LASER_B_PIN, LOW);
+            lastToggleTime = now;
+        }
+    } else {
+        // Kalau sedang OFF dan sudah melewati OFF-time → hidupkan
+        if (elapsed >= currentOffTime) {
+            laserOn = true;
+            digitalWrite(LASER_A_PIN, HIGH);
+            digitalWrite(LASER_B_PIN, HIGH);
+            lastToggleTime = now;
         }
     }
 }
