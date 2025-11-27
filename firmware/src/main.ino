@@ -1,96 +1,105 @@
-#include <Arduino.h>
 #include "config.h"
 #include "sensor_processing.h"
+#include "filtering.h"
 #include "laser_control.h"
 #include "state_machine.h"
 #include "occupancy_logic.h"
 #include "utils.h"
 
-// ------------------------------------
-// Global LDR states (A & B)
-// ------------------------------------
-LDRData ldrA = {0, 0, 0, 0, false};
-LDRData ldrB = {0, 0, 0, 0, false};
+// Global sensor data
+LDRSensor sensorA;
+LDRSensor sensorB;
 
-// Timestamp loop control
-unsigned long lastLoop = 0;
+// Timing control
+unsigned long lastFrameTime = 0;
 
 void setup() {
     Serial.begin(115200);
-    delay(200);
-
-    initLaserPWM();
+    Serial.println("=== Occupancy Counter System ===");
+    
+    // Initialize modules
     initSensors();
+    initLaserPWM();
     initStateMachine();
     initOccupancy();
-
-    Serial.println("AC-SRS system initialized.");
+    
+    Serial.println("System initialized. Ready.");
 }
 
 void loop() {
-    unsigned long now = millis();
-    if (now - lastLoop < LOOP_INTERVAL_MS) return;
-    lastLoop = now;
-
-    // ------------------------------------
-    // Update laser PWM (day/night logic)
-    // ------------------------------------
+    unsigned long currentTime = millis();
+    
+    // Maintain 50 Hz loop rate
+    if (currentTime - lastFrameTime < FRAME_DELAY_MS) {
+        return;
+    }
+    lastFrameTime = currentTime;
+    
+    // =====================================
+    // 1. UPDATE SENSORS
+    // =====================================
+    updateLDR_A(sensorA);
+    updateLDR_B(sensorB);
+    
+    // =====================================
+    // 2. UPDATE LASER PWM (day/night mode)
+    // =====================================
     updateLaserPWM();
-
-    // ------------------------------------
-    // Update both LDRs
-    // ------------------------------------
-    updateLDR_A(ldrA);
-    updateLDR_B(ldrB);
-
-    // ------------------------------------
-    // Feed LDR event flags to state machine
-    // ------------------------------------
+    
+    // =====================================
+    // 3. DETERMINE STATE EVENT
+    // =====================================
     StateEvent event = FEED_NONE;
-
-    if (ldrA.beamBroken) event = EVENT_BREAK_A;
-    else if (ldrB.beamBroken) event = EVENT_BREAK_B;
-    else event = EVENT_CLEAR_BOTH;
-
-    PeopleMovement movement = updateStateMachine(event);
-
-    // ------------------------------------
-    // Counter logic
-    // ------------------------------------
-    if (movement == MOVEMENT_IN) {
-        incrementPeople();
+    
+    if (sensorA.broken && sensorB.broken) {
+        event = EVENT_CLEAR_BOTH;
     } 
-    else if (movement == MOVEMENT_OUT) {
-        decrementPeople();
+    else if (sensorA.broken) {
+        event = EVENT_BREAK_A;
+    } 
+    else if (sensorB.broken) {
+        event = EVENT_BREAK_B;
     }
-
-    int people = getPeopleCount();
-
-    // ------------------------------------
-    // Temperature logic
-    // ------------------------------------
-    float temp = getTemperature();
-
-    // Jika ruangan kosong + suhu dingin → AC reminder
-    if (people == 0 && temp < TEMP_COLD_THRESHOLD) {
-        buzzWarning();
+    
+    // =====================================
+    // 4. RUN STATE MACHINE
+    // =====================================
+    PeopleMovement movement = updateStateMachine(event);
+    
+    // =====================================
+    // 5. UPDATE OCCUPANCY COUNT
+    // =====================================
+    updateOccupancy(movement);
+    
+    // =====================================
+    // 6. TEMPERATURE CHECK (optional logic)
+    // =====================================
+    static unsigned long lastTempCheck = 0;
+    if (currentTime - lastTempCheck > 5000) {  // every 5 seconds
+        float temp = getTemperature();
+        Serial.print("Temperature: ");
+        Serial.print(temp);
+        Serial.println(" °C");
+        
+        if (temp < TEMP_COLD_THRESHOLD) {
+            Serial.println("Warning: Temperature below threshold!");
+        }
+        
+        lastTempCheck = currentTime;
     }
-
-    // ------------------------------------
-    // DEBUG OUTPUT
-    // ------------------------------------
-    Serial.print("A_raw:");      Serial.print(ldrA.raw);
-    Serial.print(" A_f:");       Serial.print(ldrA.filtered);
-    Serial.print(" A_base:");    Serial.print(ldrA.baseline);
-    Serial.print(" A_d:");       Serial.print(ldrA.delta);
-    Serial.print(" A_brk:");     Serial.print(ldrA.beamBroken);
-
-    Serial.print(" | B_raw:");   Serial.print(ldrB.raw);
-    Serial.print(" B_f:");       Serial.print(ldrB.filtered);
-    Serial.print(" B_base:");    Serial.print(ldrB.baseline);
-    Serial.print(" B_d:");       Serial.print(ldrB.delta);
-    Serial.print(" B_brk:");     Serial.print(ldrB.beamBroken);
-
-    Serial.print(" | People: "); Serial.print(people);
-    Serial.print(" Temp: ");     Serial.println(temp);
+    
+    // =====================================
+    // 7. STATUS DISPLAY (optional debug)
+    // =====================================
+    static unsigned long lastDebug = 0;
+    if (currentTime - lastDebug > 1000) {  // every 1 second
+        Serial.print("Count: ");
+        Serial.print(getCurrentCount());
+        Serial.print(" | A:");
+        Serial.print(sensorA.broken ? "BREAK" : "OK");
+        Serial.print(" | B:");
+        Serial.println(sensorB.broken ? "BREAK" : "OK");
+        
+        lastDebug = currentTime;
+    }
 }
