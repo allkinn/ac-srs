@@ -103,15 +103,21 @@ AC-SRS/
 │   └── test-protocol.md
 │
 ├── firmware/
-│   ├── src/
-│   │   ├── main.ino
-│   │   ├── config.h
-│   │   ├── state_machine.h
-│   │   ├── filtering.h
-│   │   ├── sensor_processing.h
-│   │   ├── occupancy_logic.h
-│   │   └── utils.h
-│   └── platformio.ini
+│   ├── main.ino
+│   ├── config.h
+|   ├── laser_control.h
+|   ├── laser_control.cpp
+│   ├── state_machine.h
+│   ├── state_machine.cpp
+│   ├── filtering.h
+│   ├── filtering.cpp
+│   ├── sensor_processing.h
+│   ├── sensor_processing.cpp
+│   ├── occupancy_logic.h
+│   ├── occupancy_logic.cpp
+│   ├── utils.h
+│   └── utils.cpp
+│
 │
 ├── hardware/
 │   ├── schematic.png
