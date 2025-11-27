@@ -1,15 +1,20 @@
 #pragma once
 #include <Arduino.h>
 
-enum BeamState {
-    IDLE,
-    A_BROKEN,
-    B_BROKEN,
-    A_THEN_B,
-    B_THEN_A
+// Event dari sensor_processing
+enum StateEvent {
+    FEED_NONE,
+    EVENT_BREAK_A,
+    EVENT_BREAK_B,
+    EVENT_CLEAR_BOTH
 };
 
-extern BeamState beamState;
+// Output state machine (hasil gerakan orang)
+enum PeopleMovement {
+    MOVEMENT_NONE,
+    MOVEMENT_IN,
+    MOVEMENT_OUT
+};
 
 void initStateMachine();
-void updateBeamState();
+PeopleMovement updateStateMachine(StateEvent event);
