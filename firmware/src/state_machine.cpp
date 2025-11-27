@@ -1,33 +1,91 @@
 #include "state_machine.h"
-#include "sensor_processing.h"
+#include "config.h"
 
-BeamState beamState = IDLE;
+// ----------------------------------------------------
+// DEFINISI STATE
+// ----------------------------------------------------
+enum SMState {
+    IDLE,           // Tidak ada sinar terputus
+    WAIT_B,         // Sinar A terputus dulu → menunggu B → masuk
+    WAIT_A,         // Sinar B terputus dulu → menunggu A → keluar
+    CONFIRM_IN,
+    CONFIRM_OUT
+};
+
+static SMState state = IDLE;
+static unsigned long stateTime = 0;
+
+static const unsigned long STATE_TIMEOUT = 800; // ms
 
 void initStateMachine() {
-    beamState = IDLE;
+    state = IDLE;
+    stateTime = millis();
 }
 
-void updateBeamState() {
-    bool aBroken = isLDR_ABroken();
-    bool bBroken = isLDR_BBroken();
+// ----------------------------------------------------
+// STATE MACHINE INTI
+// ----------------------------------------------------
+PeopleMovement updateStateMachine(StateEvent event) {
+    unsigned long now = millis();
 
-    switch (beamState) {
-        case IDLE:
-            if (aBroken) beamState = A_BROKEN;
-            else if (bBroken) beamState = B_BROKEN;
-            break;
-
-        case A_BROKEN:
-            if (bBroken) beamState = A_THEN_B;
-            else if (!aBroken) beamState = IDLE;
-            break;
-
-        case B_BROKEN:
-            if (aBroken) beamState = B_THEN_A;
-            else if (!bBroken) beamState = IDLE;
-            break;
-
-        default:
-            break;
+    // Timeout proteksi (biar nggak nge-freeze di WAIT_B/W)
+    if (now - stateTime > STATE_TIMEOUT) {
+        state = IDLE;
+        return MOVEMENT_NONE;
     }
+
+    switch (state) {
+
+    // ------------------------------------------------
+    case IDLE:
+        if (event == EVENT_BREAK_A) {
+            state = WAIT_B;
+            stateTime = now;
+        }
+        else if (event == EVENT_BREAK_B) {
+            state = WAIT_A;
+            stateTime = now;
+        }
+        break;
+
+    // ------------------------------------------------
+    case WAIT_B:
+        if (event == EVENT_BREAK_B) {
+            state = CONFIRM_IN;
+            stateTime = now;
+        }
+        else if (event == EVENT_CLEAR_BOTH) {
+            state = IDLE;
+        }
+        break;
+
+    // ------------------------------------------------
+    case WAIT_A:
+        if (event == EVENT_BREAK_A) {
+            state = CONFIRM_OUT;
+            stateTime = now;
+        }
+        else if (event == EVENT_CLEAR_BOTH) {
+            state = IDLE;
+        }
+        break;
+
+    // ------------------------------------------------
+    case CONFIRM_IN:
+        if (event == EVENT_CLEAR_BOTH) {
+            state = IDLE;
+            return MOVEMENT_IN;
+        }
+        break;
+
+    // ------------------------------------------------
+    case CONFIRM_OUT:
+        if (event == EVENT_CLEAR_BOTH) {
+            state = IDLE;
+            return MOVEMENT_OUT;
+        }
+        break;
+    }
+
+    return MOVEMENT_NONE;
 }
