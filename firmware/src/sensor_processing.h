@@ -1,5 +1,6 @@
 #pragma once
 #include <Arduino.h>
+#include "config.h" 
 
 // Struktur data pembacaan LDR
 struct LDRData {
@@ -14,10 +15,10 @@ struct LDRData {
 void initSensors();
 
 // Update pembacaan sensor A
-void updateLDR_A(LDRData &data);
+void updateLDR_A(LDRSensor &data); 
 
 // Update pembacaan sensor B
-void updateLDR_B(LDRData &data);
+void updateLDR_B(LDRSensor &data);
 
-// Baca suhu dari AHT20 (real sensor)
+// Baca suhu dari AHT20
 float getTemperature();
