@@ -11,14 +11,17 @@ void initLaserPWM() {
 }
 
 // -----------------------------------------------------
-// CEK DAY/NIGHT MODE (berdasarkan ambient light)
-// Baca dari LDR_A sebagai reference ambient light
+// CEK DAY/NIGHT MODE
 // -----------------------------------------------------
 bool isNightMode() {
-    int ambientLight = analogRead(LDR_A_PIN);
-    
-    // Kalau ambient light di bawah threshold → night mode
-    return (ambientLight < NIGHT_THRESHOLD);
+    #if NIGHT_MODE_AUTO
+        // Pakai LDR tambahan khusus ambient light (A2)
+        int ambientLight = analogRead(LDR_AMBIENT_PIN);
+        return (ambientLight < NIGHT_THRESHOLD);
+    #else
+        // Hardcode: selalu day mode (laser full power)
+        return false;
+    #endif
 }
 
 // -----------------------------------------------------
@@ -29,7 +32,7 @@ void updateLaserPWM() {
     static bool wasNightMode = false;
     bool nightMode = isNightMode();
     
-    // Hanya update kalau ada perubahan mode
+    // Hanya update kalau ada perubahan mode (hemat CPU)
     if (nightMode != wasNightMode) {
         if (nightMode) {
             // Night mode: kurangi intensitas laser
