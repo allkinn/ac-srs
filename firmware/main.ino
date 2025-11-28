@@ -91,14 +91,32 @@ void loop() {
     // =====================================
     // 7. STATUS DISPLAY (optional debug)
     // =====================================
+    // Di loop(), ganti section 7 (STATUS DISPLAY):
     static unsigned long lastDebug = 0;
-    if (currentTime - lastDebug > 1000) {  // every 1 second
+    if (currentTime - lastDebug > 500) {  // every 500ms, faster debug
         Serial.print("Count: ");
         Serial.print(getCurrentCount());
-        Serial.print(" | A:");
-        Serial.print(sensorA.broken ? "BREAK" : "OK");
-        Serial.print(" | B:");
-        Serial.println(sensorB.broken ? "BREAK" : "OK");
+        
+        // RAW VALUES
+        Serial.print(" | A_raw:");
+        Serial.print(sensorA.raw);
+        Serial.print(" filt:");
+        Serial.print(sensorA.filtered, 1);
+        Serial.print(" base:");
+        Serial.print(sensorA.baseline, 1);
+        Serial.print(" delta:");
+        Serial.print(sensorA.delta, 1);
+        Serial.print(sensorA.broken ? " BREAK" : " OK");
+        
+        Serial.print(" | B_raw:");
+        Serial.print(sensorB.raw);
+        Serial.print(" filt:");
+        Serial.print(sensorB.filtered, 1);
+        Serial.print(" base:");
+        Serial.print(sensorB.baseline, 1);
+        Serial.print(" delta:");
+        Serial.print(sensorB.delta, 1);
+        Serial.println(sensorB.broken ? " BREAK" : " OK");
         
         lastDebug = currentTime;
     }
