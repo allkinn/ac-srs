@@ -3,41 +3,56 @@
 // ==========================================
 // PIN ASSIGNMENT
 // ==========================================
-// KY-008 uses digital pins (not PWM required, but can use PWM pins as digital)
+// KY-008 Laser modules (digital control)
 #define LASER_A_PIN            9
 #define LASER_B_PIN            10
 
+// LM393 Analog Output (AO pins)
 #define LDR_A_PIN              A0
 #define LDR_B_PIN              A1
 
-// OPTIONAL: LDR tambahan buat ambient light detection
-#define LDR_AMBIENT_PIN        A2
+// AHT20 I2C (fixed pins on Nano)
+// SDA = A4, SCL = A5 (hardware defined)
 
-#define BUZZER_PIN             3
+#define BUZZER_PIN             3   // Optional
 
 // ==========================================
 // LASER CONTROL
 // ==========================================
-// KY-008 is digital ON/OFF only, no PWM dimming support
-// These constants kept for compatibility but not used
-#define LASER_DAY_PWM          255   // Not used with KY-008
-#define LASER_NIGHT_PWM        180   // Not used with KY-008
-#define NIGHT_THRESHOLD        50    // Not used (no auto dimming)
-#define NIGHT_MODE_AUTO        false // KY-008 can't dim, always full power
+// KY-008 is digital ON/OFF only (no PWM dimming)
+#define LASER_DAY_PWM          255   // Not used
+#define LASER_NIGHT_PWM        180   // Not used
+#define NIGHT_THRESHOLD        50    // Not used
+#define NIGHT_MODE_AUTO        false
 
 // ==========================================
 // FILTERING & BASELINE ADAPTATION
 // ==========================================
-#define FILTER_ALPHA           0.10f
-#define BASELINE_ALPHA         0.001f
+#define FILTER_ALPHA           0.10f      // 10% new, 90% history (smoothing)
+#define BASELINE_ALPHA         0.001f     // Slow drift adaptation
 
 // ==========================================
 // THRESHOLDS (with hysteresis)
 // ==========================================
-// CRITICAL: These MUST be calibrated in real conditions
-// KY-008 laser intensity is fixed, so baseline should be stable
-#define THRESHOLD_DROP         80    // ← CALIBRATE THIS
-#define THRESHOLD_RECOVERY     40    // ← CALIBRATE THIS
+// CRITICAL: LM393 AO logic is INVERTED
+// - High value (~700-950) = Light detected (beam present)
+// - Low value (~50-200)   = Light blocked (beam interrupted)
+// - Delta = filtered - baseline
+// - When blocked: delta becomes NEGATIVE (drops below baseline)
+
+// Based on your test: normal >700, blocked <100
+// Drop magnitude: 700 - 100 = 600
+// Recommended thresholds:
+
+#define THRESHOLD_DROP         200   // Delta must drop below -200 to trigger (blocked)
+#define THRESHOLD_RECOVERY     100   // Delta must rise above -100 to clear (hysteresis)
+
+// Adjust these after real-world testing if needed
+
+// ==========================================
+// STATE MACHINE TIMEOUTS
+// ==========================================
+#define STATE_TIMEOUT_MS       800   // Max time for A→B or B→A sequence
 
 // ==========================================
 // OCCUPANCY CONFIG
@@ -57,17 +72,17 @@
 // ==========================================
 // LOOP TIMING
 // ==========================================
-#define FRAME_DELAY_MS         20
+#define FRAME_DELAY_MS         20    // 50 Hz main loop
 
 // ==========================================
 // SENSOR STRUCT
 // ==========================================
 typedef struct {
-    int raw;
-    float filtered;
-    float baseline;
-    float delta;
-    bool broken;
+    int raw;           // ADC reading 0-1023 from LM393 AO
+    float filtered;    // Low-pass filtered value
+    float baseline;    // Long-term baseline (drift tracking)
+    float delta;       // filtered - baseline (negative when blocked)
+    bool broken;       // TRUE = beam blocked, FALSE = beam clear
 } LDRSensor;
 
 // ==========================================
