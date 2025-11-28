@@ -5,44 +5,44 @@ void initLaserPWM() {
     pinMode(LASER_A_PIN, OUTPUT);
     pinMode(LASER_B_PIN, OUTPUT);
     
-    // Start with day mode (full power)
-    analogWrite(LASER_A_PIN, LASER_DAY_PWM);
-    analogWrite(LASER_B_PIN, LASER_DAY_PWM);
+    // KY-008 is digital ON/OFF, not PWM
+    // Turn on both lasers at startup
+    digitalWrite(LASER_A_PIN, HIGH);
+    digitalWrite(LASER_B_PIN, HIGH);
 }
 
 // -----------------------------------------------------
 // CEK DAY/NIGHT MODE
+// KY-008 doesn't support dimming, so this returns false
+// (always "day mode" = always ON)
 // -----------------------------------------------------
 bool isNightMode() {
-    #if NIGHT_MODE_AUTO
-        // Pakai LDR tambahan khusus ambient light (A2)
-        int ambientLight = analogRead(LDR_AMBIENT_PIN);
-        return (ambientLight < NIGHT_THRESHOLD);
-    #else
-        // Hardcode: selalu day mode (laser full power)
-        return false;
-    #endif
+    // KY-008 can't dim, so we just return false
+    // Laser always runs at full power
+    return false;
 }
 
 // -----------------------------------------------------
-// UPDATE PWM UNTUK KEDUA LASER
-// Adjust PWM berdasarkan ambient light condition
+// UPDATE LASER STATE
+// For KY-008: just keep them ON continuously
+// No PWM adjustment needed
 // -----------------------------------------------------
 void updateLaserPWM() {
-    static bool wasNightMode = false;
-    bool nightMode = isNightMode();
+    // KY-008 doesn't support PWM
+    // Lasers are set to HIGH in init and stay ON
+    // This function is kept for API compatibility but does nothing
     
-    // Hanya update kalau ada perubahan mode (hemat CPU)
-    if (nightMode != wasNightMode) {
-        if (nightMode) {
-            // Night mode: kurangi intensitas laser
-            analogWrite(LASER_A_PIN, LASER_NIGHT_PWM);
-            analogWrite(LASER_B_PIN, LASER_NIGHT_PWM);
-        } else {
-            // Day mode: full power
-            analogWrite(LASER_A_PIN, LASER_DAY_PWM);
-            analogWrite(LASER_B_PIN, LASER_DAY_PWM);
-        }
-        wasNightMode = nightMode;
+    // If you want to implement pulsing for power saving:
+    // (Not recommended for counting, but here's the skeleton)
+    /*
+    static unsigned long lastToggle = 0;
+    static bool laserState = true;
+    
+    if (millis() - lastToggle > 1000) {  // Toggle every 1 second
+        laserState = !laserState;
+        digitalWrite(LASER_A_PIN, laserState);
+        digitalWrite(LASER_B_PIN, laserState);
+        lastToggle = millis();
     }
+    */
 }
