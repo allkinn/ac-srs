@@ -57,7 +57,7 @@
 // ==========================================
 // OCCUPANCY CONFIG
 // ==========================================
-#define MAX_PEOPLE_COUNT       50
+#define MAX_PEOPLE_COUNT       60
 
 // ==========================================
 // TEMPERATURE CONFIG
